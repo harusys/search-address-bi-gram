@@ -1,0 +1,11 @@
+{
+	"editor.defaultFormatter": "esbenp.prettier-vscode",
+	"editor.formatOnSave": true,
+	"prettier.useTabs": true,
+	"ruby.format": "rubocop",
+	"ruby.lint": {
+		"rubocop": true
+	},
+	"indentRainbow.colorOnWhiteSpaceOnly": true,
+	"indentRainbow.ignoreErrorLanguages": ["ruby"]
+}
