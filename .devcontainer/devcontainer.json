@@ -19,5 +19,5 @@
 		"mechatroner.rainbow-csv",
 		"GrapeCity.gc-excelviewer"
 	],
-	"postCreateCommand": "gem install rubocop"
+	"postCreateCommand": "bundler install"
 }
