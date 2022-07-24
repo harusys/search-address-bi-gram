@@ -1,5 +1,6 @@
 require 'csv' # csvライブラリを読み込み
 require 'kconv' # 日本語文字コードの変換を手軽に行うためのライブラリ
+require_relative './postal_source'
 
 # メモリリークを避けるために、一度に読み込む CSV 行数を定義
 BATCH_SIZE = 100
@@ -27,15 +28,14 @@ if ARGV.size != 1
 end
 
 # インデックス作成
-# TODO: 「以下に掲載がない場合」「・・の次に番地がくる場合」削除処理
 # TODO: 郵便番号の重複処理（例：4980000）　※全国地方公共団体コードと複合キーで検索する？
 # TODO: 複数行に分割されるレコード処理（例：0330072）　※（ が始まり ）で終わるまでが分割されたレコードと判定する
 index = Hash.new { |h, k| h[k] = [] }
 CSV.foreach(DATA_PATH, encoding: 'SJIS:UTF-8').each_slice(BATCH_SIZE) do |rows|
   rows.each.with_index(1) do |row, idx|
-    address = "#{row[6]}#{row[7]}#{row[8]}"
     # 住所をバイグラムで分割
-    address.to_ngram(2).each do |ngram|
+    postal_data = PostalSource.new(row)
+    postal_data.get_address.to_ngram(2).each do |ngram|
       index[ngram].push(idx)
     end
   end
@@ -48,4 +48,5 @@ CSV.foreach(DATA_PATH, encoding: 'SJIS:UTF-8').each_slice(BATCH_SIZE) do |rows|
   rows.each.with_index(1) do |row, idx|
     p row if index[query].include?(idx)
   end
+  puts '検索が終了しました'
 end
