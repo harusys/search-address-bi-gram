@@ -6,10 +6,12 @@
 	"extensions": [
 		// For Ruby
 		"rebornix.Ruby",
-		"misogi.ruby-rubocop",
 		// For Linter, Formatter
+		"misogi.ruby-rubocop",
 		"dbaeumer.vscode-eslint",
 		"esbenp.prettier-vscode",
+		// For Intellisense
+		"castwide.solargraph",
 		// Utility
 		"usernamehw.errorlens",
 		"oderwat.indent-rainbow",
