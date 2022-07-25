@@ -82,9 +82,18 @@ class AddressIndex
     puts 'インデックスを用いて検索します'
     idxs = read
     p idxs
-    CSV.foreach(KenAll.new.csv_path, encoding: 'SJIS:UTF-8').each_slice(@batch_size) do |rows|
-      rows.each.with_index(1) do |row, idx|
-        p row if idxs[query].include?(idx)
+    # クエリを 2 文字に分解してインデックス番号を AND 検索
+    match_idxs = idxs
+                 .slice(*query.to_ngram(2))                                          # クエリを 2 文字に分解して合致するインデックスのみ抽出
+                 .values                                                             # 2 次元配列化
+                 .reduce([]) { |acc, arr| acc.empty? ? acc.concat(arr) : acc & arr } # インデックス番号を AND 検索
+    p match_idxs
+    # 検索条件に合致するインデックス番号の住所を表示
+    match_idxs.each do |match_idx|
+      CSV.foreach(KenAll.new.csv_path, encoding: 'SJIS:UTF-8').each_slice(@batch_size) do |rows|
+        rows.each.with_index(1) do |row, idx|
+          p row if idx == match_idx
+        end
       end
     end
   end
