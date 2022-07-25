@@ -10,6 +10,7 @@ class String
     each_char
       .each_cons(n_str)
       .map(&:join)
+      # OPTIMIZE: uniq は最後にまとめて実施する？
       .uniq # 重複を除去（例：京都府京都市 -> "京都"インデックスは１つ）
   end
 end
@@ -22,7 +23,6 @@ class AddressIndex
     @folder_path = 'data'
     @csv_file_name = 'address_indexes.csv'
     @csv_path = File.expand_path("../#{@folder_path}/#{@csv_file_name}", __dir__)
-    @batch_size = 100 # メモリリークを避けるために、一度に読み込む CSV 行数を制御
   end
 
   # インデックス再構築（作成 & 上書き保存）
@@ -32,19 +32,39 @@ class AddressIndex
   end
 
   # インデックス作成
-  # TODO: 郵便番号の重複処理（例：4980000）　※全国地方公共団体コードと複合キーで検索する？
-  # TODO: 複数行に分割されるレコード処理（例：0330072）　※（ が始まり ）で終わるまでが分割されたレコードと判定する
+  # OPTIMIZE: 多重登録 かつ マージ判定ごとに uniq! で処理が遅い
   def create
     puts 'インデックスファイルを作成します'
     idxs = Hash.new { |h, k| h[k] = [] }
-    CSV.foreach(KenAll.new.read, encoding: 'SJIS:UTF-8').each_slice(@batch_size) do |rows|
-      rows.each.with_index(1) do |row, idx|
-        # 住所をバイグラムで分割
-        PostalRecord.new(row).address.to_ngram(2).each do |ngram|
-          idxs[ngram].push(idx)
-        end
+    merge_hash = Hash.new { |h, k| h[k] = [] }
+    CSV.foreach(KenAll.new.read, encoding: 'SJIS:UTF-8').each_with_index do |row, idx|
+      postal_obj = PostalRecord.new(row)
+
+      # 各レコードの住所をそのままバイグラムで分割してインデックスに追加
+      postal_obj.address.to_ngram(2).each do |ngram|
+        idxs[ngram].push(idx)
       end
+
+      # マージ判定処理
+      if merge_hash.empty?
+        merge_hash['idx'] = [idx]
+        merge_hash['obj'] = postal_obj
+      elsif merge_hash['obj'].postal_code == postal_obj.postal_code
+        merge_hash['idx'].push(idx)
+        merge_hash['obj'].town.concat(postal_obj.town)
+      else
+        # マージ後の住所をバイグラムで分割してインデックスに追加（多重登録は uniq! で除去）
+        merge_hash['obj'].address.to_ngram(2).each do |ngram|
+          idxs[ngram].concat(merge_hash['idx']).uniq!
+        end
+        # クリア処理
+        merge_hash.clear
+        merge_hash['idx'] = [idx]
+        merge_hash['obj'] = postal_obj
+      end
+      # p merge_hash
     end
+    # p idxs
     idxs
   end
 
@@ -69,10 +89,7 @@ class AddressIndex
     rebuild unless FileTest.exist?(@csv_path)
     idxs = Hash.new { |h, k| h[k] = [] }
     CSV.foreach(@csv_path) do |row|
-      # 1列目はキー、2列目以降は値
-      row[1..].each do |idx|
-        idxs[row[0]].push(idx.to_i) # インデックスは数値に変換
-      end
+      idxs.store(row[0], row[1..row.length - 1].map(&:to_i))
     end
     idxs
   end
@@ -81,20 +98,17 @@ class AddressIndex
   def search(query)
     puts 'インデックスを用いて検索します'
     idxs = read
-    p idxs
+    # p idxs
     # クエリを 2 文字に分解してインデックス番号を AND 検索
+    # FIXME: "京都府あああ" で検索すると "京都府" で検索される？
     match_idxs = idxs
-                 .slice(*query.to_ngram(2))                                          # クエリを 2 文字に分解して合致するインデックスのみ抽出
-                 .values                                                             # 2 次元配列化
-                 .reduce([]) { |acc, arr| acc.empty? ? acc.concat(arr) : acc & arr } # インデックス番号を AND 検索
-    p match_idxs
+                 .slice(*query.to_ngram(2))                                          # クエリに合致するインデックスのみ抽出
+                 .values                                                             # Hash -> Array 変換
+                 .reduce([]) { |acc, arr| acc.empty? ? acc.concat(arr) : acc & arr } # AND 検索（例：東京都 -> "東京" AND "京都"）
+    # p match_idxs
     # 検索条件に合致するインデックス番号の住所を表示
-    match_idxs.each do |match_idx|
-      CSV.foreach(KenAll.new.csv_path, encoding: 'SJIS:UTF-8').each_slice(@batch_size) do |rows|
-        rows.each.with_index(1) do |row, idx|
-          p row if idx == match_idx
-        end
-      end
+    CSV.foreach(KenAll.new.csv_path, encoding: 'SJIS:UTF-8').each_with_index do |row, idx|
+      p row if match_idxs.include?(idx)
     end
   end
 end

@@ -1,14 +1,21 @@
 # frozen_string_literal: true
 
+require 'benchmark'
 require './src/address_index'
 
 address_idx = AddressIndex.new
 
 case ARGV.length
 when 0
-  address_idx.rebuild
+  duration = Benchmark.realtime do
+    address_idx.rebuild
+  end
+  puts "処理時間 #{duration}s"
 when 1
-  address_idx.search(ARGV[0].gsub(/(\s|　)+/, '')) # 検索文字列の全角/半角スペースは一律削除
+  duration = Benchmark.realtime do
+    address_idx.search(ARGV[0].gsub(/(\s|　)+/, '')) # 検索文字列の全角/半角スペースは一律削除
+  end
+  puts "処理時間 #{duration}s"
 else
   puts 'コマンドライン引数は "空" または "検索したい文字列を１つ" を指定してください。'
   puts '例１） Create Index: ruby search_index.rb'

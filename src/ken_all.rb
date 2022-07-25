@@ -12,7 +12,7 @@ class KenAll
   def initialize
     @uri = 'https://www.post.japanpost.jp/zipcode/dl/kogaki/zip/ken_all.zip'
     @folder_path = 'data'
-    @csv_file_name = 'KEN_ALL_PART.CSV'
+    @csv_file_name = 'KEN_ALL.CSV'
     @csv_path = File.expand_path("../#{@folder_path}/#{@csv_file_name}", __dir__)
   end
 
