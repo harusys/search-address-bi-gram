@@ -107,8 +107,8 @@ class AddressIndex
                  .reduce([]) { |acc, arr| acc.empty? ? acc.concat(arr) : acc & arr } # AND 検索（例：東京都 -> "東京" AND "京都"）
     # p match_idxs
     # 検索条件に合致するインデックス番号の住所を表示
-    CSV.foreach(KenAll.new.csv_path, encoding: 'SJIS:UTF-8').each_with_index do |row, idx|
-      p row if match_idxs.include?(idx)
+    File.foreach(KenAll.new.csv_path, encoding: 'SJIS:UTF-8').with_index do |line, idx|
+      puts line if match_idxs.include?(idx)
     end
   end
 end
