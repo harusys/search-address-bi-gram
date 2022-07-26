@@ -98,14 +98,17 @@ class AddressIndex
   def search(query)
     puts 'インデックスを用いて検索します'
     idxs = read
-    # p idxs
-    # クエリを 2 文字に分解してインデックス番号を AND 検索
-    # FIXME: "京都府あああ" で検索すると "京都府" で検索される？
-    match_idxs = idxs
-                 .slice(*query.to_ngram(2))                                          # クエリに合致するインデックスのみ抽出
-                 .values                                                             # Hash -> Array 変換
-                 .reduce([]) { |acc, arr| acc.empty? ? acc.concat(arr) : acc & arr } # AND 検索（例：東京都 -> "東京" AND "京都"）
-    # p match_idxs
+    match_idxs = Hash.new { |h, k| h[k] = [] }
+
+    # クエリを 2 文字に分解して、合致するインデックスのみ抽出（合致しない場合は空配列）
+    query.to_ngram(2).each do |ngram|
+      match_idxs[ngram] = idxs.key?(ngram) ? idxs[ngram] : []
+    end
+    # 各インデックスの値を積集合（AND 検索）
+    match_idxs
+      .values                                                             # Hash -> Array 変換
+      .reduce([]) { |acc, arr| acc.empty? ? acc.concat(arr) : acc & arr } # AND 検索（例：東京都 -> "東京" AND "京都"）
+
     # 検索条件に合致するインデックス番号の住所を表示
     File.foreach(KenAll.new.csv_path, encoding: 'SJIS:UTF-8').with_index do |line, idx|
       puts line if match_idxs.include?(idx)
