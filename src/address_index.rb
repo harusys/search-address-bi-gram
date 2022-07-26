@@ -32,37 +32,42 @@ class AddressIndex
   end
 
   # インデックス作成
-  # OPTIMIZE: 多重登録 かつ マージ判定ごとに uniq! で処理が遅い
   def create
     puts 'インデックスファイルを作成します'
     idxs = Hash.new { |h, k| h[k] = [] }
-    merge_hash = Hash.new { |h, k| h[k] = [] }
+    stash = Hash.new { |h, k| h[k] = [] }
     CSV.foreach(KenAll.new.read, encoding: 'SJIS:UTF-8').each_with_index do |row, idx|
       postal_obj = PostalRecord.new(row)
 
-      # 各レコードの住所をそのままバイグラムで分割してインデックスに追加
+      # マージ判定後に追加すると最終行レコードを追加できないため、マージ判定前にインデックス追加
+      # マージ前の N-gram はマージ後の N-gram に包括されるため、多重登録で問題なし（最後に重複排除しておく）
       postal_obj.address.to_ngram(2).each do |ngram|
         idxs[ngram].push(idx)
       end
 
-      # マージ判定処理
-      if merge_hash.empty?
-        merge_hash['idx'] = [idx]
-        merge_hash['obj'] = postal_obj
-      elsif merge_hash['obj'].postal_code == postal_obj.postal_code
-        merge_hash['idx'].push(idx)
-        merge_hash['obj'].town.concat(postal_obj.town)
+      # 前レコード退避
+      if stash.empty?
+        stash['idx'] = [idx]
+        stash['obj'] = postal_obj
+      # マージ処理
+      elsif stash['obj'].postal_code == postal_obj.postal_code
+        stash['idx'].push(idx)
+        stash['obj'].town.concat(postal_obj.town)
+      # 前レコードと不一致の場合はマージ完了としてインデックスに追加
       else
-        # マージ後の住所をバイグラムで分割してインデックスに追加（多重登録は uniq! で除去）
-        merge_hash['obj'].address.to_ngram(2).each do |ngram|
-          idxs[ngram].concat(merge_hash['idx']).uniq!
+        stash['obj'].address.to_ngram(2).each do |ngram|
+          idxs[ngram].concat(stash['idx'])
         end
         # クリア処理
-        merge_hash.clear
-        merge_hash['idx'] = [idx]
-        merge_hash['obj'] = postal_obj
+        stash.clear
+        stash['idx'] = [idx]
+        stash['obj'] = postal_obj
       end
-      # p merge_hash
+      # p stash
+    end
+    # 重複したインデックス番号を排除
+    idxs.each_key do |key|
+      idxs[key].uniq!
     end
     # p idxs
     idxs
@@ -104,13 +109,19 @@ class AddressIndex
     query.to_ngram(2).each do |ngram|
       match_idxs[ngram] = idxs.key?(ngram) ? idxs[ngram] : []
     end
+
     # 各インデックスの値を積集合
     # AND 検索（例：東京都 -> "東京" AND "京都"）
     match_idxs_arr = match_idxs.values.reduce([]) { |acc, arr| acc.empty? ? acc.concat(arr) : acc & arr }
 
     # 検索条件に合致するインデックス番号の住所を表示
+    count = 0
     File.foreach(KenAll.new.csv_path, encoding: 'SJIS:UTF-8').with_index do |line, idx|
-      puts line if match_idxs_arr.include?(idx)
+      if match_idxs_arr.include?(idx)
+        puts line
+        count += 1
+      end
     end
+    puts "#{count}件ヒットしました"
   end
 end
