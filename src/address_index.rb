@@ -104,14 +104,13 @@ class AddressIndex
     query.to_ngram(2).each do |ngram|
       match_idxs[ngram] = idxs.key?(ngram) ? idxs[ngram] : []
     end
-    # 各インデックスの値を積集合（AND 検索）
-    match_idxs
-      .values                                                             # Hash -> Array 変換
-      .reduce([]) { |acc, arr| acc.empty? ? acc.concat(arr) : acc & arr } # AND 検索（例：東京都 -> "東京" AND "京都"）
+    # 各インデックスの値を積集合
+    # AND 検索（例：東京都 -> "東京" AND "京都"）
+    match_idxs_arr = match_idxs.values.reduce([]) { |acc, arr| acc.empty? ? acc.concat(arr) : acc & arr }
 
     # 検索条件に合致するインデックス番号の住所を表示
     File.foreach(KenAll.new.csv_path, encoding: 'SJIS:UTF-8').with_index do |line, idx|
-      puts line if match_idxs.include?(idx)
+      puts line if match_idxs_arr.include?(idx)
     end
   end
 end
