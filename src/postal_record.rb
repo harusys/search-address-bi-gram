@@ -36,6 +36,20 @@ class PostalRecord
     # TODO: 地割・()付き補足を分解する（例：三ツ木（１～５丁目）-> 三ツ木１丁目、２丁目...）
     # 町域名に特定の文字列が含まれている場合は、町域名を除去する
     @town = '' if @town.include?('以下に掲載がない場合') || @town.include?('の次に番地がくる場合')
+
+    # 不要な文字列は検索のノイズになるので除去する
+    @town.delete!('（○○屋敷）') if @town.include?('（○○屋敷）')
+    @town.delete!('（地階・階層不明）') if @town.include?('（地階・階層不明）')
+    @town.delete!('（無番地を除く）') if @town.include?('（無番地を除く）')
+    @town.delete!('（次のビルを除く）') if @town.include?('（次のビルを除く）')
+    @town.delete!('（全域）') if @town.include?('（全域）')
+    @town.delete!('（丁目）') if @town.include?('（丁目）')
+    @town.delete!('（各町）') if @town.include?('（各町）')
+    @town.delete!('（番地）') if @town.include?('（番地）')
+    @town.delete!('（無番地）') if @town.include?('（無番地）')
+    @town.delete!('（大字）') if @town.include?('（大字）')
+    @town.delete!('（その他）') if @town.include?('（その他）')
+
     "#{@prefecture}#{@city}#{@town}"
   end
 end
