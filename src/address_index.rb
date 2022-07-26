@@ -10,7 +10,6 @@ class String
     each_char
       .each_cons(n_str)
       .map(&:join)
-      # OPTIMIZE: uniq は最後にまとめて実施する？
       .uniq # 重複を除去（例：京都府京都市 -> "京都"インデックスは１つ）
   end
 end
@@ -33,7 +32,6 @@ class AddressIndex
 
   # インデックス作成
   def create
-    puts 'インデックスファイルを作成します'
     idxs = Hash.new { |h, k| h[k] = [] }
     stash = Hash.new { |h, k| h[k] = [] }
     CSV.foreach(KenAll.new.read, encoding: 'SJIS:UTF-8').each_with_index do |row, idx|
@@ -63,19 +61,16 @@ class AddressIndex
         stash['idx'] = [idx]
         stash['obj'] = postal_obj
       end
-      # p stash
     end
     # 重複したインデックス番号を排除
     idxs.each_key do |key|
       idxs[key].uniq!
     end
-    # p idxs
     idxs
   end
 
   # インデックス上書き保存
   def save(idxs)
-    puts 'インデックスファイルを上書き保存します'
     CSV.open(@csv_path, 'w') do |csv|
       idxs.each do |key, values|
         row = [key]
@@ -89,7 +84,6 @@ class AddressIndex
 
   # インデックス取得
   def read
-    puts 'インデックスファイルを取得します'
     # インデックスファイルが存在しない場合は作成
     rebuild unless FileTest.exist?(@csv_path)
     idxs = Hash.new { |h, k| h[k] = [] }
@@ -101,7 +95,6 @@ class AddressIndex
 
   # インデックスを用いて検索
   def search(query)
-    puts 'インデックスを用いて検索します'
     idxs = read
     match_idxs = Hash.new { |h, k| h[k] = [] }
 

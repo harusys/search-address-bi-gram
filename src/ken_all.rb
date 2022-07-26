@@ -33,7 +33,6 @@ class KenAll
 
   # zip ファイルを解凍
   def unzip(zip_path)
-    puts 'ダウンロードした zip ファイルを解凍します'
     Zip::File.open(zip_path) do |zip|
       zip.each do |entry|
         # 特定ファイルのみ解凍
@@ -48,7 +47,6 @@ class KenAll
 
   # CSV ファイル取得
   def read
-    puts 'CSV ファイルを取得します'
     # CSV ファイルが存在しない場合は作成
     unzip(file_download) unless FileTest.exist?(@csv_path)
     @csv_path
