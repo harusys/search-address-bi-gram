@@ -105,7 +105,7 @@ class AddressIndex
 
     # 各インデックスの値を積集合
     # AND 検索（例：東京都 -> "東京" AND "京都"）
-    match_idxs_arr = match_idxs.values.reduce([]) { |acc, arr| acc.empty? ? acc.concat(arr) : acc & arr }
+    match_idxs_arr = match_idxs.values.reduce { |acc, arr| acc.nil? ? acc.concat(arr) : acc & arr }
 
     # 検索条件に合致するインデックス番号の住所を表示
     count = 0

@@ -13,7 +13,10 @@ when 0
   puts "処理時間 #{duration}s"
 when 1
   duration = Benchmark.realtime do
-    query = ARGV[0].gsub(/(\s|　)+/, '').tr!('0-9', '０-９')
+    # 空白を無視
+    query = ARGV[0].gsub(/(\s|　)+/, '')
+    # 数字は全角に変換
+    query = query.tr('0-9', '０-９')
     puts "「#{query}」で検索します　※注※ 数字は全角に自動変換され、空白は無視されます"
     address_idx.search(query) # 検索文字列の全角/半角スペースは一律削除
   end
