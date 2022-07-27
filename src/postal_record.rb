@@ -33,7 +33,6 @@ class PostalRecord
   end
 
   def address
-    # TODO: 地割・()付き補足を分解する（例：三ツ木（１～５丁目）-> 三ツ木１丁目、２丁目...）
     # 町域名に特定の文字列が含まれている場合は、町域名を除去する
     @town = '' if @town.include?('以下に掲載がない場合') || @town.include?('の次に番地がくる場合')
 
